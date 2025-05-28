@@ -14,3 +14,10 @@ resolver = "3"
 members = [
   "crates/*",
 ]
+
+
+[workspace.dependencies]
+# tokio
+tokio = { version = "1" }
+tokio-stream = "0.1.11"
+tokio-util = { version = "0.7.4", features = ["codec"] }

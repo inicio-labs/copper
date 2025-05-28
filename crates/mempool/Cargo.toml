@@ -1,0 +1,21 @@
+[package]
+name = "mempool"
+version.workspace = true
+edition.workspace = true
+readme.workspace = true
+repository.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rustc-hash = "2.1.1"
+tokio = { workspace = true, features = ["rt-multi-thread", "sync"] }
+thiserror = "1.0"
+auto_impl = "1.1.0"
+bitflags = "2.4.1"
+tracing = "0.1"
+futures-util = "0.3"
+hex = "0.4"
+
+[lints]
+workspace = true

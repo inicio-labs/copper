@@ -184,3 +184,59 @@ impl MockTransactionFactory {
 		self.validated(MockTransaction::default())
 	}
 }
+
+/// A set of mock transactions that can be generated in various configurations.
+#[derive(Debug, Clone)]
+pub struct MockTransactionSet {
+	pub transactions: Vec<MockTransaction>,
+}
+
+impl MockTransactionSet {
+	/// Creates a set of dependent transactions (sequential nonces) for a given sender.
+	///
+	/// # Arguments
+	/// * `sender` - The address that will be the sender for all transactions
+	/// * `start_nonce` - The starting nonce value
+	/// * `end_nonce` - The ending nonce value (inclusive)
+	pub fn dependent(sender: Address, start_nonce: u64, end_nonce: u64) -> Self {
+		let mut transactions = Vec::new();
+
+		for nonce in start_nonce..=end_nonce {
+			let mut tx = MockTransaction::default();
+			tx.set_sender(sender.clone()).set_nonce(nonce);
+
+			// Create unique hash for each transaction
+			let mut hash_bytes = [0u8; 32];
+			hash_bytes[0..8].copy_from_slice(&nonce.to_le_bytes());
+			tx.set_hash(TxHash::new(hash_bytes));
+
+			transactions.push(tx);
+		}
+
+		Self { transactions }
+	}
+
+	/// Converts the transaction set into a vector of transactions.
+	pub fn into_vec(self) -> Vec<MockTransaction> {
+		self.transactions
+	}
+
+	/// Returns a reference to the transactions vector.
+	pub fn as_vec(&self) -> &Vec<MockTransaction> {
+		&self.transactions
+	}
+
+	/// Returns the number of transactions in the set.
+	pub fn len(&self) -> usize {
+		self.transactions.len()
+	}
+
+	/// Returns true if the transaction set is empty.
+	pub fn is_empty(&self) -> bool {
+		self.transactions.is_empty()
+	}
+
+	pub fn extend(&mut self, other: Self) {
+		self.transactions.extend(other.transactions);
+	}
+}

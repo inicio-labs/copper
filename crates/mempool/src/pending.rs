@@ -2,10 +2,13 @@ use crate::{
 	best::BestTransactions,
 	config::SubPoolLimit,
 	identifier::{SenderId, TransactionId},
-	ordering::{Priority, TransactionOrdering},
+	ordering::{FeeOrdering, Priority, TransactionOrdering},
 	size::SizeTracker,
+	util::Address,
 	validate::ValidPoolTransaction,
 };
+
+use crate::traits::PoolTransaction;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::{
 	cmp::Ordering,
@@ -520,23 +523,18 @@ impl<T: TransactionOrdering> Ord for PendingTransaction<T> {
 // 	use alloy_primitives::address;
 // 	use std::collections::HashSet;
 
-// 	#[test]
-// 	fn test_enforce_basefee() {
-// 		let mut f = MockTransactionFactory::default();
-// 		let mut pool = PendingPool::new(MockOrdering::default());
-// 		let tx = f.validated_arc(MockTransaction::eip1559().inc_price());
-// 		pool.add_transaction(tx.clone(), 0);
+#[test]
+fn test_add_transaction() {
+	use crate::testutils::{MockTransaction, MockTransactionFactory};
 
-// 		assert!(pool.contains(tx.id()));
-// 		assert_eq!(pool.len(), 1);
+	let mut f = MockTransactionFactory::default();
+	let mut pool = PendingPool::<FeeOrdering<MockTransaction>>::default();
+	let tx = f.validated_arc(MockTransaction::default());
+	pool.add_transaction(tx.clone());
 
-// 		let removed = pool.update_base_fee(0);
-// 		assert!(removed.is_empty());
-
-// 		let removed = pool.update_base_fee((tx.max_fee_per_gas() + 1) as u64);
-// 		assert_eq!(removed.len(), 1);
-// 		assert!(pool.is_empty());
-// 	}
+	assert!(pool.contains(tx.id()));
+	assert_eq!(pool.len(), 1);
+}
 
 // 	#[test]
 // 	fn evict_worst() {
@@ -561,53 +559,60 @@ impl<T: TransactionOrdering> Ord for PendingTransaction<T> {
 // 		assert_eq!(removed[0].hash(), t.hash());
 // 	}
 
-// 	#[test]
-// 	fn correct_independent_descendants() {
-// 		// this test ensures that we set the right highest nonces set for each sender
-// 		let mut f = MockTransactionFactory::default();
-// 		let mut pool = PendingPool::new(MockOrdering::default());
+#[test]
+fn correct_independent_descendants() {
+	use crate::testutils::{MockTransaction, MockTransactionFactory, MockTransactionSet};
 
-// 		let a_sender = address!("0x000000000000000000000000000000000000000a");
-// 		let b_sender = address!("0x000000000000000000000000000000000000000b");
-// 		let c_sender = address!("0x000000000000000000000000000000000000000c");
-// 		let d_sender = address!("0x000000000000000000000000000000000000000d");
+	// this test ensures that we set the right highest nonces set for each sender
+	let mut f = MockTransactionFactory::default();
+	let mut pool = PendingPool::<FeeOrdering<MockTransaction>>::default();
 
-// 		// create a chain of transactions by sender A, B, C
-// 		let mut tx_set = MockTransactionSet::dependent(a_sender, 0, 4, TxType::Eip1559);
-// 		let a = tx_set.clone().into_vec();
+	let a_sender = Address::new("0x000000000000000000000000000000000000000a".to_string());
+	let b_sender = Address::new("0x000000000000000000000000000000000000000b".to_string());
+	let c_sender = Address::new("0x000000000000000000000000000000000000000c".to_string());
+	let d_sender = Address::new("0x000000000000000000000000000000000000000d".to_string());
 
-// 		let b = MockTransactionSet::dependent(b_sender, 0, 3, TxType::Eip1559).into_vec();
-// 		tx_set.extend(b.clone());
+	// create a chain of transactions by sender A, B, C
+	let mut tx_set = MockTransactionSet::dependent(a_sender, 0, 4);
+	let a = tx_set.clone();
 
-// 		// C has the same number of txs as B
-// 		let c = MockTransactionSet::dependent(c_sender, 0, 3, TxType::Eip1559).into_vec();
-// 		tx_set.extend(c.clone());
+	let b = MockTransactionSet::dependent(b_sender, 0, 3);
+	tx_set.extend(b.clone());
 
-// 		let d = MockTransactionSet::dependent(d_sender, 0, 1, TxType::Eip1559).into_vec();
-// 		tx_set.extend(d.clone());
+	// C has the same number of txs as B
+	let c = MockTransactionSet::dependent(c_sender, 0, 3);
+	tx_set.extend(c.clone());
 
-// 		// add all the transactions to the pool
-// 		let all_txs = tx_set.into_vec();
-// 		for tx in all_txs {
-// 			pool.add_transaction(f.validated_arc(tx), 0);
-// 		}
+	let d = MockTransactionSet::dependent(d_sender, 0, 1);
+	tx_set.extend(d.clone());
 
-// 		pool.assert_invariants();
+	// add all the transactions to the pool
+	let all_txs = tx_set.into_vec();
+	for tx in all_txs {
+		pool.add_transaction(f.validated_arc(tx));
+	}
 
-// 		// the independent set is the roots of each of these tx chains, these are the highest
-// 		// nonces for each sender
-// 		let expected_highest_nonces = vec![d[0].clone(), c[2].clone(), b[2].clone(), a[3].clone()]
-// 			.iter()
-// 			.map(|tx| (tx.sender(), tx.nonce()))
-// 			.collect::<HashSet<_>>();
-// 		let actual_highest_nonces = pool
-// 			.highest_nonces
-// 			.values()
-// 			.map(|tx| (tx.transaction.sender(), tx.transaction.nonce()))
-// 			.collect::<HashSet<_>>();
-// 		assert_eq!(expected_highest_nonces, actual_highest_nonces);
-// 		pool.assert_invariants();
-// 	}
+	pool.assert_invariants();
+
+	// the independent set is the roots of each of these tx chains, these are the highest
+	// nonces for each sender
+	let expected_highest_nonces = vec![
+		d.transactions[1].clone(),
+		c.transactions[3].clone(),
+		b.transactions[3].clone(),
+		a.transactions[4].clone(),
+	]
+	.iter()
+	.map(|tx| (tx.sender(), tx.nonce()))
+	.collect::<FxHashSet<_>>();
+	let actual_highest_nonces = pool
+		.highest_nonces
+		.values()
+		.map(|tx| (tx.transaction.sender(), tx.transaction.nonce()))
+		.collect::<FxHashSet<_>>();
+	assert_eq!(expected_highest_nonces, actual_highest_nonces);
+	pool.assert_invariants();
+}
 
 // 	#[test]
 // 	fn truncate_by_sender() {

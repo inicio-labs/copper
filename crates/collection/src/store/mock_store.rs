@@ -1,4 +1,4 @@
-use crate::{store::KVStore, CollectionError};
+use crate::{context::MockContext, store::KVStore, CollectionError};
 use std::{collections::HashMap, sync::Arc, sync::Mutex};
 
 #[derive(Clone)]
@@ -17,27 +17,33 @@ impl MockKVStore {
 	}
 }
 
-impl KVStore<CollectionError> for MockKVStore {
-	fn get(&self, key: &Vec<u8>) -> Result<Vec<u8>, CollectionError> {
+impl KVStore<MockContext, CollectionError> for MockKVStore {
+	fn get(&self, ctx: &MockContext, key: &Vec<u8>) -> Result<Vec<u8>, CollectionError> {
 		self.data.lock().unwrap().get(key).cloned().ok_or(CollectionError::NotFoundError)
 	}
 
-	fn has(&self, key: &Vec<u8>) -> Result<bool, CollectionError> {
+	fn has(&self, ctx: &MockContext, key: &Vec<u8>) -> Result<bool, CollectionError> {
 		Ok(self.data.lock().unwrap().contains_key(key))
 	}
 
-	fn set(&self, key: &Vec<u8>, value: &Vec<u8>) -> Result<(), CollectionError> {
+	fn set(
+		&self,
+		ctx: &MockContext,
+		key: &Vec<u8>,
+		value: &Vec<u8>,
+	) -> Result<(), CollectionError> {
 		self.data.lock().unwrap().insert(key.clone(), value.clone());
 		Ok(())
 	}
 
-	fn delete(&self, key: &Vec<u8>) -> Result<(), CollectionError> {
+	fn delete(&self, ctx: &MockContext, key: &Vec<u8>) -> Result<(), CollectionError> {
 		self.data.lock().unwrap().remove(key);
 		Ok(())
 	}
 
 	fn iterator(
 		&self,
+		ctx: &MockContext,
 		start: &Vec<u8>,
 		end: &Vec<u8>,
 	) -> Result<Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)>>, CollectionError> {
@@ -57,6 +63,7 @@ impl KVStore<CollectionError> for MockKVStore {
 
 	fn reverse_iterator(
 		&self,
+		ctx: &MockContext,
 		start: &Vec<u8>,
 		end: &Vec<u8>,
 	) -> Result<Box<dyn Iterator<Item = (Vec<u8>, Vec<u8>)>>, CollectionError> {
@@ -81,40 +88,42 @@ mod tests {
 
 	#[test]
 	fn test_basic_operations() {
+		let ctx = MockContext::new();
 		let store = MockKVStore::new();
 		let key = b"test_key".to_vec();
 		let value = b"test_value".to_vec();
 
 		// Test set
-		store.set(&key, &value).unwrap();
-		assert!(store.has(&key).unwrap());
+		store.set(&ctx, &key, &value).unwrap();
+		assert!(store.has(&ctx, &key).unwrap());
 
 		// Test get
-		let retrieved = store.get(&key).unwrap();
+		let retrieved = store.get(&ctx, &key).unwrap();
 		assert_eq!(retrieved, value);
 
 		// Test delete
-		store.delete(&key).unwrap();
-		assert!(!store.has(&key).unwrap());
-		assert!(store.get(&key).is_err());
+		store.delete(&ctx, &key).unwrap();
+		assert!(!store.has(&ctx, &key).unwrap());
+		assert!(store.get(&ctx, &key).is_err());
 	}
 
 	#[test]
 	fn test_iterator() {
+		let ctx = MockContext::new();
 		let store = MockKVStore::new();
 
 		// Insert some test data
-		store.set(&b"a".to_vec(), &b"1".to_vec()).unwrap();
-		store.set(&b"b".to_vec(), &b"2".to_vec()).unwrap();
-		store.set(&b"c".to_vec(), &b"3".to_vec()).unwrap();
+		store.set(&ctx, &b"a".to_vec(), &b"1".to_vec()).unwrap();
+		store.set(&ctx, &b"b".to_vec(), &b"2".to_vec()).unwrap();
+		store.set(&ctx, &b"c".to_vec(), &b"3".to_vec()).unwrap();
 
 		// Test forward iterator
-		let iter = store.iterator(&b"a".to_vec(), &b"c".to_vec()).unwrap();
+		let iter = store.iterator(&ctx, &b"a".to_vec(), &b"c".to_vec()).unwrap();
 		let items: Vec<_> = iter.collect();
 		assert_eq!(items.len(), 2); // Should include 'a' and 'b' but not 'c'
 
 		// Test reverse iterator
-		let iter = store.reverse_iterator(&b"a".to_vec(), &b"c".to_vec()).unwrap();
+		let iter = store.reverse_iterator(&ctx, &b"a".to_vec(), &b"c".to_vec()).unwrap();
 		let items: Vec<_> = iter.collect();
 		assert_eq!(items.len(), 2);
 		assert_eq!(items[0].0, b"b".to_vec()); // First item should be 'b' in reverse order

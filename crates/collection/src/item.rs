@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
 	codec::{NoKeyCodec, ValueCodec},
+	context::Context,
 	map::Map,
 	schema::SchemaBuilder,
 	store::KVStore,
@@ -10,14 +11,16 @@ use crate::{
 
 const ITEM_KEY: i32 = 0;
 
-pub struct Item<V: Clone, VC: ValueCodec<V> + Clone + 'static> {
-	m: Map<i32, V, NoKeyCodec, VC>,
+pub struct Item<V: Clone, VC: ValueCodec<V> + Clone + 'static, C: Context + Clone + 'static> {
+	m: Map<i32, V, NoKeyCodec, VC, C>,
 }
 
-impl<V: Clone + 'static, VC: ValueCodec<V> + Clone + 'static> Item<V, VC> {
-	pub fn new<T: KVStore<CollectionError> + Clone>(
-		sb: &mut SchemaBuilder<T>,
-		store_accessor: Arc<Box<dyn KVStore<CollectionError>>>,
+impl<V: Clone + 'static, VC: ValueCodec<V> + Clone + 'static, C: Context + Clone + 'static>
+	Item<V, VC, C>
+{
+	pub fn new<T: KVStore<C, CollectionError> + Clone>(
+		sb: &mut SchemaBuilder<C, T>,
+		store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
 		prefix: Vec<u8>,
 		name: String,
 		value_codec: VC,
@@ -26,19 +29,19 @@ impl<V: Clone + 'static, VC: ValueCodec<V> + Clone + 'static> Item<V, VC> {
 		Ok(Self { m })
 	}
 
-	pub fn get(&self) -> Result<V, CollectionError> {
-		self.m.get(&ITEM_KEY)
+	pub fn get(&self, ctx: &C) -> Result<V, CollectionError> {
+		self.m.get(ctx, &ITEM_KEY)
 	}
 
-	pub fn set(&self, value: &V) -> Result<(), CollectionError> {
-		self.m.set(&ITEM_KEY, value)
+	pub fn set(&self, ctx: &C, value: &V) -> Result<(), CollectionError> {
+		self.m.set(ctx, &ITEM_KEY, value)
 	}
 
-	pub fn remove(&self, key: &i32) -> Result<(), CollectionError> {
-		self.m.remove(&ITEM_KEY)
+	pub fn remove(&self, ctx: &C) -> Result<(), CollectionError> {
+		self.m.remove(ctx, &ITEM_KEY)
 	}
 
-	pub fn has(&self) -> Result<bool, CollectionError> {
-		self.m.has(&ITEM_KEY)
+	pub fn has(&self, ctx: &C) -> Result<bool, CollectionError> {
+		self.m.has(ctx, &ITEM_KEY)
 	}
 }

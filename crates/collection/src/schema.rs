@@ -1,8 +1,13 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::{collections::HashMap, error::Error, sync::Arc};
+use std::{collections::HashMap, error::Error, marker::PhantomData, sync::Arc};
 
-use crate::{collection::Collection, store::KVStore, CollectionError};
+use crate::{
+	collection::Collection,
+	context::{Context, ContextImpl},
+	store::KVStore,
+	CollectionError,
+};
 
 /// Regular expression for valid collection names: must start with a letter and contain only alphanumeric characters or underscores
 pub const NAME_REGEX: &str = r"^[a-zA-Z][a-zA-Z0-9_]*$";
@@ -13,20 +18,22 @@ lazy_static! {
 
 /// Schema represents a collection of collections that can be used to store and retrieve data.
 #[derive(Default, Clone)]
-pub struct Schema<T: KVStore<CollectionError> + Clone> {
+pub struct Schema<C: Context + Clone, T: KVStore<C, CollectionError> + Clone> {
 	store_accessor: T,
 	collections_ordered: Vec<String>,
 	collections_by_prefix: HashMap<String, Arc<Box<dyn Collection>>>,
 	collections_by_name: HashMap<String, Arc<Box<dyn Collection>>>,
 	// Fields will be added as we implement more functionality
+	_phantom: PhantomData<C>,
 }
 
-pub struct SchemaBuilder<T: KVStore<CollectionError> + Clone> {
-	schema: Schema<T>,
+pub struct SchemaBuilder<C: Context + Clone, T: KVStore<C, CollectionError> + Clone> {
+	schema: Schema<C, T>,
 	built: bool,
+	_phantom: PhantomData<C>,
 }
 
-impl<T: KVStore<CollectionError> + Clone> SchemaBuilder<T> {
+impl<C: Context + Clone, T: KVStore<C, CollectionError> + Clone> SchemaBuilder<C, T> {
 	pub fn new(store: T) -> Self {
 		Self {
 			schema: Schema {
@@ -34,8 +41,10 @@ impl<T: KVStore<CollectionError> + Clone> SchemaBuilder<T> {
 				collections_ordered: Default::default(),
 				collections_by_prefix: Default::default(),
 				collections_by_name: Default::default(),
+				_phantom: PhantomData,
 			},
 			built: false,
+			_phantom: PhantomData,
 		}
 	}
 
@@ -67,7 +76,7 @@ impl<T: KVStore<CollectionError> + Clone> SchemaBuilder<T> {
 		Ok(())
 	}
 
-	pub fn build(&mut self) -> Result<Schema<T>, CollectionError> {
+	pub fn build(&mut self) -> Result<Schema<C, T>, CollectionError> {
 		if self.built {
 			return Err(CollectionError::EncodeError(
 				"Schema already built".to_string(),

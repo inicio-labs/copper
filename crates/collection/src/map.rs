@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::{
 	codec::{KeyCodec, ValueCodec},
 	collection::Collection,
+	context::{Context, ContextImpl},
 	ranger::{Direction, Ranger},
 	schema::SchemaBuilder,
 	store::KVStore,
@@ -16,8 +17,9 @@ pub struct Map<
 	V: Clone,
 	KC: KeyCodec<K> + Clone + 'static,
 	VC: ValueCodec<V> + Clone + 'static,
+	C: Context + Clone,
 > {
-	store_accessor: Arc<Box<dyn KVStore<CollectionError>>>,
+	store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
 	prefix: Vec<u8>,
 	name: String,
 	key_codec: KC,
@@ -31,16 +33,17 @@ impl<
 		V: 'static + Clone,
 		KC: KeyCodec<K> + Clone + 'static,
 		VC: ValueCodec<V> + Clone + 'static,
-	> Map<K, V, KC, VC>
+		C: Context + Clone + 'static,
+	> Map<K, V, KC, VC, C>
 {
-	pub fn new<T: KVStore<CollectionError> + Clone>(
-		sb: &mut SchemaBuilder<T>,
-		store_accessor: Arc<Box<dyn KVStore<CollectionError>>>,
+	pub fn new<T: KVStore<C, CollectionError> + Clone>(
+		sb: &mut SchemaBuilder<C, T>,
+		store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
 		prefix: Vec<u8>,
 		name: String,
 		key_codec: KC,
 		value_codec: VC,
-	) -> Result<Map<K, V, KC, VC>, CollectionError> {
+	) -> Result<Map<K, V, KC, VC, C>, CollectionError> {
 		let m = Self {
 			store_accessor: store_accessor.clone(),
 			prefix,
@@ -64,7 +67,8 @@ impl<
 		V: Clone,
 		KC: KeyCodec<K> + Clone + 'static,
 		VC: ValueCodec<V> + Clone + 'static,
-	> Collection for Map<K, V, KC, VC>
+		C: Context + Clone + 'static,
+	> Collection for Map<K, V, KC, VC, C>
 {
 	fn get_name(&self) -> String {
 		self.name.clone()
@@ -80,36 +84,38 @@ impl<
 		V: Clone,
 		KC: KeyCodec<K> + Clone + 'static,
 		VC: ValueCodec<V> + Clone + 'static,
-	> Map<K, V, KC, VC>
+		C: Context + Clone + 'static,
+	> Map<K, V, KC, VC, C>
 {
-	pub fn set(&self, key: &K, value: &V) -> Result<(), CollectionError> {
+	pub fn set(&self, ctx: &C, key: &K, value: &V) -> Result<(), CollectionError> {
 		let key_bytes = encode_key_with_prefix(&self.prefix, key, &self.key_codec)?;
 		let value_bytes = self.value_codec.encode(value)?;
-		self.store_accessor.set(&key_bytes, &value_bytes)?;
+		self.store_accessor.set(ctx, &key_bytes, &value_bytes)?;
 		Ok(())
 	}
 
-	pub fn get(&self, key: &K) -> Result<V, CollectionError> {
+	pub fn get(&self, ctx: &C, key: &K) -> Result<V, CollectionError> {
 		let key_bytes = encode_key_with_prefix(&self.prefix, key, &self.key_codec)?;
-		let value_bytes = self.store_accessor.get(&key_bytes)?;
+		let value_bytes = self.store_accessor.get(ctx, &key_bytes)?;
 		let value = self.value_codec.decode(&value_bytes)?;
 		Ok(value)
 	}
 
-	pub fn remove(&self, key: &K) -> Result<(), CollectionError> {
+	pub fn remove(&self, ctx: &C, key: &K) -> Result<(), CollectionError> {
 		let key_bytes = encode_key_with_prefix(&self.prefix, key, &self.key_codec)?;
-		self.store_accessor.delete(&key_bytes)?;
+		self.store_accessor.delete(ctx, &key_bytes)?;
 		Ok(())
 	}
 
-	pub fn has(&self, key: &K) -> Result<bool, CollectionError> {
+	pub fn has(&self, ctx: &C, key: &K) -> Result<bool, CollectionError> {
 		let key_bytes = encode_key_with_prefix(&self.prefix, key, &self.key_codec)?;
-		let value_bytes = self.store_accessor.get(&key_bytes)?;
+		let value_bytes = self.store_accessor.get(ctx, &key_bytes)?;
 		Ok(value_bytes.len() > 0)
 	}
 
 	pub fn iter(
 		&self,
+		ctx: &C,
 		rng: Ranger<K>,
 	) -> Result<Box<dyn Iterator<Item = (K, V)>>, CollectionError> {
 		let key_codec = self.key_codec.clone();
@@ -126,8 +132,8 @@ impl<
 		};
 
 		let iter = match rng.direction {
-			Direction::Asc => self.store_accessor.iterator(&start_key, &end_key)?,
-			Direction::Desc => self.store_accessor.reverse_iterator(&start_key, &end_key)?,
+			Direction::Asc => self.store_accessor.iterator(ctx, &start_key, &end_key)?,
+			Direction::Desc => self.store_accessor.reverse_iterator(ctx, &start_key, &end_key)?,
 		};
 
 		let mapped_iter = iter.map(move |(key, value)| {
@@ -167,14 +173,15 @@ mod tests {
 	use super::*;
 	use crate::{
 		codec::{BytesKeyCodec, BytesValueCodec},
+		context::{Context, MockContext},
 		ranger::{Direction, Ranger},
 		store::MockKVStore,
 	};
 
 	fn setup_map() -> Result<
 		(
-			Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec>,
-			SchemaBuilder<MockKVStore>,
+			Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec, MockContext>,
+			SchemaBuilder<MockContext, MockKVStore>,
 		),
 		CollectionError,
 	> {
@@ -195,6 +202,7 @@ mod tests {
 
 	#[test]
 	fn test_basic_operations() {
+		let ctx = MockContext::new();
 		let result = setup_map();
 		assert!(result.is_ok());
 		let (map, _) = result.unwrap();
@@ -203,26 +211,26 @@ mod tests {
 		let value = b"test_value".to_vec();
 
 		// Test set
-		map.set(&key, &value);
+		map.set(&ctx, &key, &value);
 
 		// Test get
-		let retrieved = map.get(&key);
+		let retrieved = map.get(&ctx, &key);
 
 		assert!(retrieved.is_ok());
 		assert!(retrieved.unwrap() == value);
 
 		// Test has
-		let exists = map.has(&key);
+		let exists = map.has(&ctx, &key);
 
 		assert!(exists.is_ok());
 		assert!(exists.unwrap(), "Key should exist after setting");
 
 		// Test remove
-		let removed = map.remove(&key);
+		let removed = map.remove(&ctx, &key);
 
 		assert!(removed.is_ok());
 
-		let retrieved_after_remove = map.get(&key);
+		let retrieved_after_remove = map.get(&ctx, &key);
 
 		assert!(retrieved_after_remove.is_err());
 		assert!(matches!(
@@ -233,6 +241,8 @@ mod tests {
 
 	#[test]
 	fn test_prefix_isolation() -> Result<(), CollectionError> {
+		let ctx = MockContext::new();
+
 		let store = MockKVStore::new();
 		let mut schema_builder = SchemaBuilder::new(store.clone());
 
@@ -260,18 +270,19 @@ mod tests {
 		let value2 = b"value2".to_vec();
 
 		// Set values in both maps
-		map1.set(&key, &value1)?;
-		map2.set(&key, &value2)?;
+		map1.set(&ctx, &key, &value1)?;
+		map2.set(&ctx, &key, &value2)?;
 
 		// Verify values are isolated
-		assert_eq!(map1.get(&key)?, value1);
-		assert_eq!(map2.get(&key)?, value2);
+		assert_eq!(map1.get(&ctx, &key)?, value1);
+		assert_eq!(map2.get(&ctx, &key)?, value2);
 
 		Ok(())
 	}
 
 	#[test]
 	fn test_same_prefix() {
+		let ctx = MockContext::new();
 		let store = MockKVStore::new();
 		let mut schema_builder = SchemaBuilder::new(store.clone());
 
@@ -301,6 +312,7 @@ mod tests {
 
 	#[test]
 	fn test_iterator() {
+		let ctx = MockContext::new();
 		let result = setup_map();
 		assert!(result.is_ok());
 		let (map, _) = result.unwrap();
@@ -313,8 +325,8 @@ mod tests {
 		];
 
 		for (k, v) in &test_data {
-			map.set(k, v);
-			assert!(map.get(k).is_ok());
+			map.set(&ctx, k, v);
+			assert!(map.get(&ctx, k).is_ok());
 		}
 
 		// Test ascending iteration
@@ -324,7 +336,7 @@ mod tests {
 			direction: Direction::Asc,
 		};
 
-		let result = map.iter(ranger);
+		let result = map.iter(&ctx, ranger);
 		assert!(result.is_ok());
 		let iter = result.unwrap();
 
@@ -349,7 +361,7 @@ mod tests {
 			direction: Direction::Desc,
 		};
 
-		let result = map.iter(ranger);
+		let result = map.iter(&ctx, ranger);
 		assert!(result.is_ok());
 		let iter = result.unwrap();
 
@@ -370,6 +382,7 @@ mod tests {
 
 	#[test]
 	fn test_schema_registration() {
+		let ctx = MockContext::new();
 		let store = MockKVStore::new();
 		let mut schema_builder = SchemaBuilder::new(store.clone());
 
@@ -402,17 +415,18 @@ mod tests {
 
 	#[test]
 	fn test_invalid_operations() -> Result<(), CollectionError> {
+		let ctx = MockContext::new();
 		let (map, _) = setup_map()?;
 
 		// Test get with non-existent key
-		let result = map.get(&b"nonexistent".to_vec());
+		let result = map.get(&ctx, &b"nonexistent".to_vec());
 		assert!(matches!(
 			result.unwrap_err(),
 			CollectionError::NotFoundError
 		));
 
 		// Test remove non-existent key (should not error)
-		let result = map.remove(&b"nonexistent".to_vec());
+		let result = map.remove(&ctx, &b"nonexistent".to_vec());
 		assert!(result.is_ok());
 
 		Ok(())

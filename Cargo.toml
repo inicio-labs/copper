@@ -12,5 +12,7 @@ unsafe_code = "forbid"
 [workspace]
 resolver = "3"
 members = [
-  "crates/*",
+  "crates/proto",
+  "crates/types",
+  "crates/x/*"
 ]

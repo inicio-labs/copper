@@ -282,6 +282,7 @@ name = "collection"
 version = "0.1.0"
 dependencies = [
  "alloy-primitives",
+ "byteorder",
  "hex",
  "lazy_static",
  "regex",

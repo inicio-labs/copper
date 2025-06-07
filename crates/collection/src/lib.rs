@@ -1,12 +1,13 @@
 pub mod codec;
-mod collection;
-mod error;
-mod item;
-mod map;
-mod ranger;
-mod store;
+pub mod collection;
+pub mod error;
+pub mod item;
+pub mod map;
+pub mod ranger;
+pub mod sequence;
+pub mod store;
 
-mod context;
+pub mod context;
 pub mod schema;
 
 pub use error::CollectionError;

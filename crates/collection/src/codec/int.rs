@@ -151,7 +151,7 @@ mod tests {
 	#[test]
 	fn test_ordering() {
 		let codec = I64KeyCodec::default();
-		let numbers = vec![0i64, 1, 5, 10, 100, i64::MAX];
+		let numbers = vec![i64::MIN, -2, -1, 0i64, 1, 5, 10, 100, i64::MAX];
 		let mut encoded_values = Vec::new();
 
 		// Encode all numbers
@@ -163,8 +163,6 @@ mod tests {
 
 		// Test that encoded values maintain the same ordering
 		for i in 0..encoded_values.len() - 1 {
-			println!("{:?} < {:?}", encoded_values[i], encoded_values[i + 1]);
-
 			assert!(
 				encoded_values[i] < encoded_values[i + 1],
 				"Encoded values should maintain ordering"

@@ -13,6 +13,7 @@ unsafe_code = "forbid"
 resolver = "3"
 members = [
   "crates/proto",
+  "crates/collection",
   "crates/types",
   "crates/x/*"
 ]

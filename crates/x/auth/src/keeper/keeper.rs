@@ -26,13 +26,13 @@ pub struct AccountKeeper<
 > {
 	store_service: KV,
 	perm_addrs: HashMap<String, PermissionsForAddress>,
-	authority: String,
+	pub authority: String,
 
 	// State
 	schema: Schema<C, KV>,
-	params: Item<Vec<u8>, BytesValueCodec, C, KV>,
-	account_number: Sequence<C, KV>,
-	accounts: Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec, C, KV>,
+	pub params: Item<Vec<u8>, BytesValueCodec, C, KV>,
+	pub account_number: Sequence<C, KV>,
+	pub accounts: Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec, C, KV>,
 }
 
 impl<C: Context + Clone + 'static, KV: KVStore<C, CollectionError> + Clone + 'static>

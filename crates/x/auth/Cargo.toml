@@ -11,7 +11,10 @@ rust-version.workspace = true
 copper-proto = { path = "../../proto" }
 copper-collections= {path ="../../collection"}
 copper-types={path="../../types"}
-hex = "0.4" 
+hex = "0.4"
+prost = "0.13"
+prost-types = "0.13"
+thiserror = "2"
 
 
 [lints]

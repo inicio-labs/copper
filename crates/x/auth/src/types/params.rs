@@ -13,39 +13,24 @@ pub struct Params {
 
 impl Params {
 	/// Creates a new Params object with the specified values
-	pub fn new(
-		max_memo_characters: u64,
-		tx_sig_limit: u64,
-		tx_size_cost_per_byte: u64,
-		sig_verify_cost_ed25519: u64,
-		sig_verify_cost_secp256k1: u64,
-	) -> Self {
-		Self {
-			inner: ParamsProto {
-				max_memo_characters,
-				tx_sig_limit,
-				tx_size_cost_per_byte,
-				sig_verify_cost_ed25519,
-				sig_verify_cost_secp256k1,
-			},
-		}
+	pub fn new(inner: ParamsProto) -> Self {
+		Self { inner }
 	}
 
 	/// Validates that the parameters have valid values
-	pub fn validate(&self) -> Result<(), String> {
-		if self.inner.tx_sig_limit == 0 {
+	pub fn validate(inner: ParamsProto) -> Result<(), String> {
+		if inner.tx_sig_limit == 0 {
 			return Err("invalid tx signature limit: 0".to_string());
-		}
-		if self.inner.sig_verify_cost_ed25519 == 0 {
+		} else if inner.sig_verify_cost_ed25519 == 0 {
 			return Err("invalid ED25519 signature verification cost: 0".to_string());
 		}
-		if self.inner.sig_verify_cost_secp256k1 == 0 {
+		if inner.sig_verify_cost_secp256k1 == 0 {
 			return Err("invalid SECK256k1 signature verification cost: 0".to_string());
 		}
-		if self.inner.max_memo_characters == 0 {
+		if inner.max_memo_characters == 0 {
 			return Err("invalid max memo characters: 0".to_string());
 		}
-		if self.inner.tx_size_cost_per_byte == 0 {
+		if inner.tx_size_cost_per_byte == 0 {
 			return Err("invalid tx size cost per byte: 0".to_string());
 		}
 

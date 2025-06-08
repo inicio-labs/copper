@@ -187,6 +187,9 @@ dependencies = [
  "copper-proto",
  "copper-types",
  "hex",
+ "prost",
+ "prost-types",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

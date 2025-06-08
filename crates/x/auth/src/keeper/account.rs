@@ -6,7 +6,7 @@ use copper_types::{account::AccountI, address::AccAddress, pub_key::PubKey};
 use crate::types::permissions::PermissionsForAddress;
 
 /// AccountKeeperI is the interface contract that x/auth's keeper implements
-pub trait AccountKeeperI<T: PubKey, C: Context> {
+pub trait AccountKeeperI<C: Context + Clone + 'static, T: PubKey> {
 	/// Return a new account with the next account number and the specified address.
 	/// Does not save the new account to the store.
 	fn new_account_with_address(&self, ctx: &C, addr: AccAddress) -> Box<dyn AccountI<T>>;

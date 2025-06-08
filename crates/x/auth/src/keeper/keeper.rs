@@ -1,34 +1,42 @@
-use copper_collections::{context::Context, schema::Schema, store::KVStore};
-use copper_crypto::PubKey;
-use copper_proto::Message;
-use copper_store::KVStore;
-use copper_types::{AccAddress, Codec};
-use std::{collections::HashMap, error::Error};
+use copper_collections::{
+	CollectionError,
+	codec::{BytesKeyCodec, BytesValueCodec},
+	context::Context,
+	item::Item,
+	map::Map,
+	schema::{Schema, SchemaBuilder},
+	sequence::Sequence,
+	store::KVStore,
+};
+use copper_types::{account::AccountI, address::AccAddress, pub_key::PubKey};
+use std::{collections::HashMap, error::Error, sync::Arc};
 
-use crate::types::permissions::PermissionsForAddress;
+use crate::{
+	keeper::account::AccountKeeperI,
+	types::{
+		keys::{ACCOUNT_NUMBER_STORE_KEY_PREFIX, GLOBAL_ACCOUNT_NUMBER_KEY, PARAMS_KEY},
+		permissions::PermissionsForAddress,
+	},
+};
 
-/// AccountKeeper encodes/decodes accounts using binary encoding/decoding
-pub struct AccountKeeper<C: Context, E: Error, K: KVStore<C, E>> {
+pub struct AccountKeeper<C: Context + Clone + 'static, K: KVStore<C, CollectionError> + Clone> {
 	store_service: K,
 	perm_addrs: HashMap<String, PermissionsForAddress>,
 	authority: String,
 
 	// State
-	schema: Schema<C, K, E>,
-	params: Item<Params>,
-	account_number: Sequence,
-	accounts: IndexedMap<AccAddress, Box<dyn AccountI>, AccountsIndexes>,
+	schema: Schema<C, K>,
+	params: Item<Vec<u8>, BytesValueCodec, C>,
+	account_number: Sequence<C>,
+	accounts: Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec, C>,
 }
 
-impl AccountKeeper {
+impl<C: Context + Clone + 'static, K: KVStore<C, CollectionError> + Clone> AccountKeeper<C, K> {
 	pub fn new(
-		store_service: KVStore,
-		proto: Box<dyn Fn() -> Box<dyn AccountI>>,
+		store_service: K,
 		macc_perms: HashMap<String, Vec<String>>,
-		address_codec: Codec,
-		bech32_prefix: String,
 		authority: String,
-	) -> Result<Self, String> {
+	) -> Result<Self, CollectionError> {
 		let mut perm_addrs = HashMap::new();
 		for (name, perms) in macc_perms {
 			perm_addrs.insert(name.clone(), PermissionsForAddress::new(&name, perms)?);
@@ -36,29 +44,35 @@ impl AccountKeeper {
 
 		let mut sb = SchemaBuilder::new(store_service.clone());
 
-		let params = Item::new(&mut sb, PARAMS_KEY, "params");
-		let account_number = Sequence::new(&mut sb, GLOBAL_ACCOUNT_NUMBER_KEY, "account_number");
-		let accounts = IndexedMap::new(
+		let arc_store_service: Arc<Box<dyn KVStore<C, CollectionError>>> = Arc::new(Box::new(store_service.clone()));
+
+		let params = Item::new(
 			&mut sb,
-			ADDRESS_STORE_KEY_PREFIX,
-			"accounts",
-			AccountsIndexes::new(&mut sb),
-		);
+			arc_store_service.clone(),
+			PARAMS_KEY.to_vec(),
+			"params".to_string(),
+			BytesValueCodec,
+		)?;	
 
-		let schema = sb.build().map_err(|e| e.to_string())?;
+		let account_number = Sequence::new(
+			&mut sb,
+			arc_store_service.clone(),
+			GLOBAL_ACCOUNT_NUMBER_KEY.to_vec(),
+			"account_number".to_string(),
+		)?;
 
-		Ok(Self {
-			address_codec,
-			store_service,
-			perm_addrs,
-			bech32_prefix,
-			proto,
-			authority,
-			schema,
-			params,
-			account_number,
-			accounts,
-		})
+		let accounts = Map::new(
+			&mut sb,
+			arc_store_service.clone(),
+			ACCOUNT_NUMBER_STORE_KEY_PREFIX.to_vec(),
+			"accounts".to_string(),
+			BytesKeyCodec,
+			BytesValueCodec,
+		)?;
+
+		let schema = sb.build()?;
+
+		Ok(Self { store_service,perm_addrs, authority, schema, params, account_number, accounts })
 	}
 
 	// Implementation of key methods...
@@ -66,16 +80,79 @@ impl AccountKeeper {
 		&self.authority
 	}
 
-	pub fn get_pub_key(&self, ctx: &Context, addr: &AccAddress) -> Result<Box<dyn PubKey>, String> {
-		let acc = self
-			.get_account(ctx, addr)
-			.ok_or_else(|| format!("account {} does not exist", addr))?;
-
-		Ok(
-			acc.get_pub_key()
-				.ok_or_else(|| format!("public key for account {} not found", addr))?,
-		)
-	}
 
 	// ... Additional method implementations would follow
+}
+
+impl<C: Context + Clone + 'static, K: KVStore<C, CollectionError> + Clone, T: PubKey>
+	AccountKeeperI<C, T> for AccountKeeper<C, K>
+{
+	/// Return a new account with the next account number and the specified address.
+	/// Does not save the new account to the store.
+	fn new_account_with_address(&self, ctx: &C, addr: AccAddress) -> Box<dyn AccountI<T>>{
+		let acc = self.new_account(ctx, account);
+		self.set_account(ctx, acc);
+		acc
+	};
+
+	/// Return a new account with the next account number.
+	/// Does not save the new account to the store.
+	fn new_account(&self, ctx: &C, account: Box<dyn AccountI<T>>) -> Box<dyn AccountI<T>>{
+
+	};
+
+	/// Check if an account exists in the store.
+	fn has_account(&self, ctx: &C, addr: &AccAddress) -> bool{
+	};
+
+	/// Retrieve an account from the store.
+	fn get_account(&self, ctx: &C, addr: &AccAddress) -> Option<Box<dyn AccountI<T>>>;
+
+	/// Set an account in the store.
+	fn set_account(&self, ctx: &C, account: Box<dyn AccountI<T>>){
+		self.accounts.set(ctx, account.get_address(), account.to_vec())?;
+	};
+
+	/// Remove an account from the store.
+	fn remove_account(&self, ctx: &C, account: Box<dyn AccountI<T>>);
+
+	/// Iterate over all accounts, calling the provided function.
+	/// Stop iteration when it returns true.
+	fn iterate_accounts<F>(&self, ctx: &C, f: F)
+	where
+		F: FnMut(Box<dyn AccountI<T>>) -> bool;
+
+	/// Fetch the public key of an account at a specified address
+	fn get_pub_key(&self, ctx: &C, addr: &AccAddress) -> Result<Box<dyn PubKey>, String> {
+		let acc = self
+			.get_account(ctx, addr)
+			.ok_or_else(|| format!("account {} does not exist", addr.to_string()))?;
+
+		
+
+
+
+
+
+	}
+
+	/// Fetch the sequence of an account at a specified address.
+	fn get_sequence(&self, ctx: &C, addr: &AccAddress) -> Result<u64, String>;
+
+	/// Fetch the next account number, and increment the internal counter.
+	fn next_account_number(&self, ctx: &C) -> u64 {
+		let seq = self.account_number.next(ctx);
+
+		match seq {
+			Ok(seq) => seq.try_into(),
+			Err(e) => {
+				panic!("Error getting next account number: {}", e);
+			},
+		}
+	}
+
+	/// Get module permissions
+	fn get_module_permissions(&self) -> &HashMap<String, PermissionsForAddress> {
+		&self.perm_addrs
+	}
 }

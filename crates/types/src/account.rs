@@ -2,6 +2,9 @@ use crate::{address::AccAddress, pub_key::PubKey};
 
 /// AccountI defines the interface for accounts in the auth module.
 pub trait AccountI<T: PubKey> {
+	/// Create a new account with the given address
+	fn new(address: AccAddress) -> Self;
+
 	/// Get the account's address
 	fn get_address(&self) -> AccAddress;
 
@@ -25,6 +28,12 @@ pub trait AccountI<T: PubKey> {
 
 	/// Set the account sequence
 	fn set_sequence(&mut self, sequence: u64) -> Result<(), String>;
+
+	/// Get the account bytes
+	fn to_bytes(&self) -> Vec<u8>;
+
+	/// Get the account from bytes
+	fn from_vec(bytes: Vec<u8>) -> Self;
 }
 
 /// ModuleAccountI defines an account interface for modules that hold tokens in

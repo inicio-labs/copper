@@ -32,3 +32,15 @@ impl From<[u8; 20]> for AccAddress {
 		Self(address)
 	}
 }
+
+impl From<AccAddress> for Vec<u8> {
+	fn from(address: AccAddress) -> Self {
+		address.0.to_vec()
+	}
+}
+
+impl From<&AccAddress> for Vec<u8> {
+	fn from(address: &AccAddress) -> Self {
+		address.0.to_vec()
+	}
+}

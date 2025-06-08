@@ -24,4 +24,7 @@ pub enum CollectionError {
 
 	#[error("not found error")]
 	NotFoundError,
+
+	#[error("invalid input: {0}")]
+	InvalidInput(String),
 }

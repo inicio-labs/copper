@@ -3,6 +3,7 @@ syntax = "proto3";
 package ics;
 
 import "cosmos/auth/v1beta1/auth.proto";
+import "cosmos/auth/v1beta1/genesis.proto";
 import "cosmos/auth/v1beta1/tx.proto";
 import "cosmos/bank/v1beta1/tx.proto";
 import "cosmos/staking/v1beta1/tx.proto";

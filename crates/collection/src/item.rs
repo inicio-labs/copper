@@ -11,16 +11,25 @@ use crate::{
 
 const ITEM_KEY: i32 = 0;
 
-pub struct Item<V: Clone, VC: ValueCodec<V> + Clone + 'static, C: Context + Clone + 'static> {
-	m: Map<i32, V, NoKeyCodec, VC, C>,
+pub struct Item<
+	V: Clone,
+	VC: ValueCodec<V> + Clone + 'static,
+	C: Context + Clone + 'static,
+	KV: KVStore<C, CollectionError> + Clone + 'static,
+> {
+	m: Map<i32, V, NoKeyCodec, VC, C, KV>,
 }
 
-impl<V: Clone + 'static, VC: ValueCodec<V> + Clone + 'static, C: Context + Clone + 'static>
-	Item<V, VC, C>
+impl<
+		V: Clone + 'static,
+		VC: ValueCodec<V> + Clone + 'static,
+		C: Context + Clone + 'static,
+		KV: KVStore<C, CollectionError> + Clone + 'static,
+	> Item<V, VC, C, KV>
 {
-	pub fn new<T: KVStore<C, CollectionError> + Clone>(
-		sb: &mut SchemaBuilder<C, T>,
-		store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
+	pub fn new(
+		sb: &mut SchemaBuilder<C, KV>,
+		store_accessor: Arc<KV>,
 		prefix: Vec<u8>,
 		name: String,
 		value_codec: VC,

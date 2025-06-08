@@ -1,31 +1,34 @@
 use std::sync::Arc;
 
 use crate::{
-	codec::I64ValueCodec, context::Context, item::Item, map::Map, schema::SchemaBuilder,
+	codec::U64ValueCodec, context::Context, item::Item, map::Map, schema::SchemaBuilder,
 	store::KVStore, CollectionError,
 };
 
-const DEFAULT_SEQUENCE_START: i64 = 0;
+const DEFAULT_SEQUENCE_START: u64 = 0;
 
-pub struct Sequence<C: Context + Clone + 'static> {
-	i: Item<i64, I64ValueCodec, C>,
+pub struct Sequence<C: Context + Clone + 'static, KV: KVStore<C, CollectionError> + Clone + 'static>
+{
+	i: Item<u64, U64ValueCodec, C, KV>,
 }
 
-impl<C: Context + Clone + 'static> Sequence<C> {
-	pub fn new<KV: KVStore<C, CollectionError> + Clone>(
+impl<C: Context + Clone + 'static, KV: KVStore<C, CollectionError> + Clone + 'static>
+	Sequence<C, KV>
+{
+	pub fn new(
 		sb: &mut SchemaBuilder<C, KV>,
-		store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
+		store_accessor: Arc<KV>,
 		prefix: Vec<u8>,
 		name: String,
 	) -> Result<Self, CollectionError> {
-		let i = Item::new(sb, store_accessor, prefix, name, I64ValueCodec)?;
+		let i = Item::new(sb, store_accessor, prefix, name, U64ValueCodec)?;
 		Ok(Self { i })
 	}
 
 	/// Peek returns the current sequence value. If no number is set,
 	/// then the DEFAULT_SEQUENCE_START is returned.
 	/// Returns an error on encoding issues.
-	pub fn peek(&self, ctx: &C) -> Result<i64, CollectionError> {
+	pub fn peek(&self, ctx: &C) -> Result<u64, CollectionError> {
 		match self.i.get(ctx) {
 			Ok(n) => Ok(n),
 			Err(CollectionError::NotFoundError) => Ok(DEFAULT_SEQUENCE_START),
@@ -35,7 +38,7 @@ impl<C: Context + Clone + 'static> Sequence<C> {
 
 	/// Next returns the next sequence number and sets the next expected sequence.
 	/// Returns an error on encoding issues.
-	pub fn next(&self, ctx: &C) -> Result<i64, CollectionError> {
+	pub fn next(&self, ctx: &C) -> Result<u64, CollectionError> {
 		let seq = self.peek(ctx)?;
 		self.set(ctx, seq + 1)?;
 		Ok(seq)
@@ -43,7 +46,7 @@ impl<C: Context + Clone + 'static> Sequence<C> {
 
 	/// Set hard resets the sequence to the provided value.
 	/// Returns an error on encoding issues.
-	pub fn set(&self, ctx: &C, value: i64) -> Result<(), CollectionError> {
-		self.i.set(ctx, &value)
+	pub fn set(&self, ctx: &C, value: u64) -> Result<(), CollectionError> {
+		self.i.set(ctx, &value as &u64)
 	}
 }

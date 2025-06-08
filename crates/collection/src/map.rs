@@ -17,15 +17,17 @@ pub struct Map<
 	V: Clone,
 	KC: KeyCodec<K> + Clone + 'static,
 	VC: ValueCodec<V> + Clone + 'static,
-	C: Context + Clone,
+	C: Context + Clone + 'static,
+	KV: KVStore<C, CollectionError> + Clone,
 > {
-	store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
+	store_accessor: Arc<KV>,
 	prefix: Vec<u8>,
 	name: String,
 	key_codec: KC,
 	value_codec: VC,
 	_key_type: PhantomData<K>,
 	_value_type: PhantomData<V>,
+	_context: PhantomData<C>,
 }
 
 impl<
@@ -34,16 +36,17 @@ impl<
 		KC: KeyCodec<K> + Clone + 'static,
 		VC: ValueCodec<V> + Clone + 'static,
 		C: Context + Clone + 'static,
-	> Map<K, V, KC, VC, C>
+		KV: KVStore<C, CollectionError> + Clone + 'static,
+	> Map<K, V, KC, VC, C, KV>
 {
-	pub fn new<T: KVStore<C, CollectionError> + Clone>(
-		sb: &mut SchemaBuilder<C, T>,
-		store_accessor: Arc<Box<dyn KVStore<C, CollectionError>>>,
+	pub fn new(
+		sb: &mut SchemaBuilder<C, KV>,
+		store_accessor: Arc<KV>,
 		prefix: Vec<u8>,
 		name: String,
 		key_codec: KC,
 		value_codec: VC,
-	) -> Result<Map<K, V, KC, VC, C>, CollectionError> {
+	) -> Result<Map<K, V, KC, VC, C, KV>, CollectionError> {
 		let m = Self {
 			store_accessor: store_accessor.clone(),
 			prefix,
@@ -52,6 +55,7 @@ impl<
 			value_codec,
 			_key_type: PhantomData,
 			_value_type: PhantomData,
+			_context: PhantomData,
 		};
 
 		let arc_m: Arc<Box<dyn Collection>> = Arc::new(Box::new(m.clone()));
@@ -68,7 +72,8 @@ impl<
 		KC: KeyCodec<K> + Clone + 'static,
 		VC: ValueCodec<V> + Clone + 'static,
 		C: Context + Clone + 'static,
-	> Collection for Map<K, V, KC, VC, C>
+		KV: KVStore<C, CollectionError> + Clone + 'static,
+	> Collection for Map<K, V, KC, VC, C, KV>
 {
 	fn get_name(&self) -> String {
 		self.name.clone()
@@ -85,7 +90,8 @@ impl<
 		KC: KeyCodec<K> + Clone + 'static,
 		VC: ValueCodec<V> + Clone + 'static,
 		C: Context + Clone + 'static,
-	> Map<K, V, KC, VC, C>
+		KV: KVStore<C, CollectionError> + Clone + 'static,
+	> Map<K, V, KC, VC, C, KV>
 {
 	pub fn set(&self, ctx: &C, key: &K, value: &V) -> Result<(), CollectionError> {
 		let key_bytes = encode_key_with_prefix(&self.prefix, key, &self.key_codec)?;
@@ -180,7 +186,7 @@ mod tests {
 
 	fn setup_map() -> Result<
 		(
-			Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec, MockContext>,
+			Map<Vec<u8>, Vec<u8>, BytesKeyCodec, BytesValueCodec, MockContext, MockKVStore>,
 			SchemaBuilder<MockContext, MockKVStore>,
 		),
 		CollectionError,
@@ -190,7 +196,7 @@ mod tests {
 
 		let map = Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store)),
+			Arc::new(store),
 			b"test_prefix".to_vec(),
 			"test_map".to_string(),
 			BytesKeyCodec,
@@ -249,7 +255,7 @@ mod tests {
 		// Create two maps with different prefixes
 		let map1 = Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store.clone())),
+			Arc::new(store.clone()),
 			b"prefix1".to_vec(),
 			"map1".to_string(),
 			BytesKeyCodec,
@@ -258,7 +264,7 @@ mod tests {
 
 		let map2 = Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store)),
+			Arc::new(store),
 			b"prefix2".to_vec(),
 			"map2".to_string(),
 			BytesKeyCodec,
@@ -289,7 +295,7 @@ mod tests {
 		// Create two maps with different prefixes
 		let _ = Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store.clone())),
+			Arc::new(store.clone()),
 			b"prefix1".to_vec(),
 			"map1".to_string(),
 			BytesKeyCodec,
@@ -298,7 +304,7 @@ mod tests {
 
 		let _ = Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store)),
+			Arc::new(store),
 			b"prefix11".to_vec(),
 			"map2".to_string(),
 			BytesKeyCodec,
@@ -389,7 +395,7 @@ mod tests {
 		// Create first map
 		Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store.clone())),
+			Arc::new(store.clone()),
 			b"prefix1".to_vec(),
 			"map1".to_string(),
 			BytesKeyCodec,
@@ -400,7 +406,7 @@ mod tests {
 		// Try to create map with same name
 		let result = Map::new(
 			&mut schema_builder,
-			Arc::new(Box::new(store)),
+			Arc::new(store),
 			b"prefix2".to_vec(),
 			"map1".to_string(), // Same name
 			BytesKeyCodec,

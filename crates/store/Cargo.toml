@@ -1,0 +1,25 @@
+[package]
+name = "copper-store"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+iavl = ["dep:iavl"]
+redb = [
+  "dep:redb",
+  "iavl/redb",
+]
+
+[dependencies]
+bytes = "1"
+iavl = { git = "https://github.com/inicio-labs/iavl.git", tag = "v0.1.0-alpha.1", optional = true }
+nebz = { workspace = true, features = ["bytes"] }
+oblux = "0.1.0"
+redb = { version = "2.6", optional = true }
+thiserror = { workspace = true }

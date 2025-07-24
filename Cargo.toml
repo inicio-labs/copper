@@ -11,4 +11,5 @@ unsafe_code = "forbid"
 resolver = "3"
 members = [
   "crates/store",
+  "crates/collections",
 ]

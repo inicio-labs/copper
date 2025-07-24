@@ -13,3 +13,9 @@ members = [
   "crates/store",
   "crates/collections",
 ]
+
+[workspace.dependencies]
+copper-store = { path = "./crates/store" }
+
+nebz = "0.2.0"
+thiserror = "2"

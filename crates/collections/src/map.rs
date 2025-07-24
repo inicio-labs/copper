@@ -31,7 +31,6 @@ where
 		crate::key_bz(self.prefix.as_ref(), key)
 			.map(|key| store.get(key))?
 			.map_err(|_| CollectionsError::Store)?
-			.map(NonEmptyBz::into_inner)
 			.map(|bz| V::deserialize(&mut bz.as_ref()))
 			.transpose()
 			.map_err(|_| CollectionsError::Deserialization)
@@ -41,7 +40,7 @@ where
 	where
 		S: InsertKVStore,
 		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
-		NonEmptyBz<S::Value>: for<'a> From<NonEmptyBz<&'a [u8]>>,
+		S::Value: From<Vec<u8>>,
 		V: BorshSerialize,
 	{
 		let key = crate::key_bz(self.prefix.as_ref(), key)?;
@@ -49,12 +48,10 @@ where
 		let value = {
 			let mut buf = vec![];
 			value.serialize(&mut buf).map_err(|_| CollectionsError::Serialization)?;
-			NonEmptyBz::new(buf).ok_or(CollectionsError::Serialization)?
+			buf
 		};
 
-		store
-			.insert(key.as_ref_slice().into(), value.as_ref_slice().into())
-			.map_err(|_| CollectionsError::Store)
+		store.insert(key.as_ref_slice().into(), value.into()).map_err(|_| CollectionsError::Store)
 	}
 
 	pub fn remove<S>(&self, store: &mut S, key: &K) -> Result<bool, CollectionsError>

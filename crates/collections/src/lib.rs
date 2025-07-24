@@ -1,8 +1,9 @@
 mod error;
 mod item;
 mod map;
+mod set;
 
-pub use self::{item::Item, map::Map};
+pub use self::{item::Item, map::Map, set::Set};
 
 use borsh::BorshSerialize;
 use nebz::NonEmptyBz;

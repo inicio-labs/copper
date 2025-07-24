@@ -9,7 +9,7 @@ pub trait GetKVStore {
 
 	type Error;
 
-	fn get<K>(&self, key: NonEmptyBz<K>) -> Result<Option<NonEmptyBz<Self::Value>>, Self::Error>
+	fn get<K>(&self, key: NonEmptyBz<K>) -> Result<Option<Self::Value>, Self::Error>
 	where
 		K: AsRef<[u8]>;
 }
@@ -24,7 +24,7 @@ pub trait InsertKVStore {
 	fn insert(
 		&mut self,
 		key: NonEmptyBz<Self::Key>,
-		value: NonEmptyBz<Self::Value>,
+		value: Self::Value,
 	) -> Result<bool, Self::Error>;
 }
 

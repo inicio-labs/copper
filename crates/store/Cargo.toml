@@ -18,7 +18,7 @@ redb = [
 
 [dependencies]
 bytes = "1"
-iavl = { git = "https://github.com/inicio-labs/iavl.git", tag = "v0.1.0-alpha.1", optional = true }
+iavl = { git = "https://github.com/inicio-labs/iavl.git", tag = "v0.1.0-alpha.2", optional = true }
 nebz = { workspace = true, features = ["bytes"] }
 oblux = "0.1.0"
 redb = { version = "2.6", optional = true }

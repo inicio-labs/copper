@@ -26,7 +26,7 @@ impl<T> Item<'_, T> {
 	where
 		S: InsertKVStore,
 		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
-		NonEmptyBz<S::Value>: for<'a> From<NonEmptyBz<&'a [u8]>>,
+		S::Value: From<Vec<u8>>,
 		T: BorshSerialize,
 	{
 		self.0.insert(store, &(), value)

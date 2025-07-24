@@ -44,7 +44,7 @@ where
 
 	type Error = IavlStoreError;
 
-	fn get<K>(&self, key: NonEmptyBz<K>) -> Result<Option<NonEmptyBz<Self::Value>>, Self::Error>
+	fn get<K>(&self, key: NonEmptyBz<K>) -> Result<Option<Self::Value>, Self::Error>
 	where
 		K: AsRef<[u8]>,
 	{
@@ -65,7 +65,7 @@ where
 	fn insert(
 		&mut self,
 		key: NonEmptyBz<Self::Key>,
-		value: NonEmptyBz<Self::Value>,
+		value: Self::Value,
 	) -> Result<bool, Self::Error> {
 		self.tree.insert(key, value).map_err(From::from)
 	}

@@ -52,9 +52,10 @@ impl AccountKeeper {
 		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>>,
 		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
 	{
-		let acc = self.get_account(store, address)?.ok_or(AccountKeeperError::AccountNotFound)?;
-
-		let new_acc = BaseAccount::new(pub_key, acc.sequence());
+		let new_acc = match self.get_account(store, address)? {
+			Some(acc) => BaseAccount::new(pub_key, acc.sequence()),
+			None => BaseAccount::new(pub_key, 0),
+		};
 
 		assert!(self.accounts.insert(store, address, &new_acc)?);
 

@@ -17,6 +17,8 @@ members = [
 ]
 
 [workspace.dependencies]
+copper-base = { path = "./crates/base" }
+copper-collections = { path = "./crates/collections" }
 copper-store = { path = "./crates/store" }
 
 borsh = "1.5"

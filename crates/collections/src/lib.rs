@@ -3,12 +3,10 @@ mod item;
 mod map;
 mod set;
 
-pub use self::{item::Item, map::Map, set::Set};
+pub use self::{error::CollectionsError, item::Item, map::Map, set::Set};
 
 use borsh::BorshSerialize;
 use nebz::NonEmptyBz;
-
-use self::error::CollectionsError;
 
 fn key_bz<P, K>(prefix: NonEmptyBz<P>, key: &K) -> Result<NonEmptyBz<Vec<u8>>, CollectionsError>
 where

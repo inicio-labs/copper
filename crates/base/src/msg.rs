@@ -12,3 +12,13 @@ pub struct RoutableMsg {
 	route: Bytes,
 	content: Bytes,
 }
+
+impl RoutableMsg {
+	pub fn route(&self) -> &Bytes {
+		&self.route
+	}
+
+	pub fn content(&self) -> &Bytes {
+		&self.content
+	}
+}

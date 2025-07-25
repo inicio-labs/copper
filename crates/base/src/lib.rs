@@ -22,9 +22,9 @@ pub trait Module {
 
 	fn name(&self) -> &'static str;
 
-	fn handle_msg(
+	fn handle_msg<'a>(
 		&self,
-		ctx: &mut MutContext<'_, Self::Store>,
+		ctx: &'a mut MutContext<'a, Self::Store>,
 		msg: &RoutableMsg,
 	) -> anyhow::Result<()>;
 
@@ -42,15 +42,12 @@ pub struct Coin {
 	amount: u128,
 }
 
-impl<'a, S> MutContext<'a, S> {
+impl<S> MutContext<'_, S> {
 	pub fn height(&self) -> BlockHeight {
 		self.height
 	}
 
-	pub fn store<'s>(&'s mut self) -> &'a mut S
-	where
-		's: 'a,
-	{
+	pub fn store(&mut self) -> &mut S {
 		self.store
 	}
 }

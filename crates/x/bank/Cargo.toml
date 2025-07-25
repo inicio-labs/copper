@@ -7,3 +7,14 @@ rust-version.workspace = true
 
 [lints]
 workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+borsh = { workspace = true, features = ["bytes"] }
+bytes = { workspace = true }
+copper-base = { workspace = true }
+copper-collections = { workspace = true }
+copper-store = { workspace = true, features = ["iavl", "redb"] }
+iavl = { workspace = true, features = ["redb"] }
+nebz = { workspace = true }
+thiserror = { workspace = true }

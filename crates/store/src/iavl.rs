@@ -1,11 +1,9 @@
 mod error;
 
-use std::sync::Arc;
-
 use bytes::Bytes;
 use iavl::{
 	Get, MutableTree,
-	kvstore::{KVStore, MutKVStore, redb::RedbStore},
+	kvstore::{KVStore, MutKVStore},
 };
 use nebz::NonEmptyBz;
 use oblux::U63;
@@ -28,9 +26,9 @@ impl<DB> IavlStore<DB> {
 }
 
 #[cfg(feature = "redb")]
-impl IavlStore<RedbStore> {
+impl IavlStore<iavl::kvstore::redb::RedbStore> {
 	pub fn with_redb(db: Database, namespace: &'static str) -> Result<Self, IavlStoreError> {
-		let store = RedbStore::new(Arc::new(db), namespace)?;
+		let store = iavl::kvstore::redb::RedbStore::new(std::sync::Arc::new(db), namespace)?;
 
 		Ok(Self { tree: MutableTree::new(store) })
 	}

@@ -13,12 +13,17 @@ members = [
   "crates/base",
   "crates/collections",
   "crates/store",
+  "crates/x/*",
 ]
 
 [workspace.dependencies]
+copper-base = { path = "./crates/base" }
+copper-collections = { path = "./crates/collections" }
 copper-store = { path = "./crates/store" }
 
+anyhow = "1"
 borsh = "1.5"
 bytes = "1"
+iavl = { git = "https://github.com/inicio-labs/iavl.git", tag = "v0.1.0-alpha.2" }
 nebz = "0.2.0"
 thiserror = "2"

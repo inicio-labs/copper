@@ -14,7 +14,6 @@ borsh = { workspace = true, features = ["bytes"] }
 bytes = { workspace = true }
 copper-base = { workspace = true }
 copper-collections = { workspace = true }
-copper-store = { workspace = true, features = ["iavl", "redb"] }
-iavl = { workspace = true, features = ["redb"] }
+copper-store = { workspace = true }
 nebz = { workspace = true }
 thiserror = { workspace = true }

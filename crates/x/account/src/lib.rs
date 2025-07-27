@@ -1,24 +1,22 @@
 pub mod keeper;
 pub mod types;
 
-use copper_base::{Address, Module, MutContext, msg::RoutableMsg};
-use copper_store::iavl::IavlStore;
-use iavl::kvstore::redb::RedbStore;
 use nebz::NonEmptyBz;
 
 use self::keeper::AccountKeeper;
 
-pub struct AccountModule {
+pub struct AccountFacet {
 	keeper: AccountKeeper,
 }
 
-impl AccountModule {
-	const NAME: &str = "account";
+impl AccountFacet {
+	pub const NAME: &str = "account";
 
-	const PREFIX: NonEmptyBz<&[u8; 15]> = NonEmptyBz::from_borrowed_array(b"account_module:");
+	const PREFIX: NonEmptyBz<&[u8]> =
+		NonEmptyBz::from_borrowed_array(b"account_module:").as_slice();
 
 	pub fn new() -> Self {
-		Self { keeper: AccountKeeper::new(Self::PREFIX.as_ref_slice()) }
+		Self { keeper: AccountKeeper::new(Self::PREFIX) }
 	}
 
 	pub fn keeper(&self) -> &AccountKeeper {
@@ -26,28 +24,8 @@ impl AccountModule {
 	}
 }
 
-impl Default for AccountModule {
+impl Default for AccountFacet {
 	fn default() -> Self {
 		Self::new()
-	}
-}
-
-impl Module for AccountModule {
-	type Store = IavlStore<RedbStore>;
-
-	fn name(&self) -> &'static str {
-		Self::NAME
-	}
-
-	fn handle_msg(
-		&self,
-		_ctx: &mut MutContext<'_, Self::Store>,
-		_msg: &RoutableMsg,
-	) -> anyhow::Result<()> {
-		Ok(())
-	}
-
-	fn extract_signers(&self, _msg: &RoutableMsg) -> anyhow::Result<Vec<Address>> {
-		Ok(vec![])
 	}
 }

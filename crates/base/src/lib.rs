@@ -1,67 +1,29 @@
 pub mod block;
+pub mod coin;
+pub mod context;
 pub mod msg;
 pub mod tx;
 
-use borsh::{BorshDeserialize, BorshSerialize};
-use ed25519_dalek::VerifyingKey;
-use sha2::{Digest, Sha256};
-
-use self::{block::BlockHeight, msg::RoutableMsg};
+use self::{context::MutContext, msg::RoutableMsg};
 
 pub type Address = [u8; 20];
 
-pub fn derive_address(vk: &VerifyingKey) -> Address {
-	let hash = Sha256::digest(vk.as_bytes());
-	let mut address = [0; 20];
-	address.copy_from_slice(&hash[hash.len() - 20..]);
-	address
+pub trait GenesisInitializer<S, G> {
+	fn init_genesis(&self, store: &mut S, genesis: G) -> anyhow::Result<()>;
 }
 
-pub trait Module {
-	type Store;
-
-	fn name(&self) -> &'static str;
-
-	fn handle_msg<'a>(
+pub trait MsgHandler<S> {
+	fn handle_msg<'t, 's>(
 		&self,
-		ctx: &'a mut MutContext<'a, Self::Store>,
+		ctx: &mut MutContext<'t, 's, S>,
 		msg: &RoutableMsg,
 	) -> anyhow::Result<()>;
-
-	fn extract_signers(&self, msg: &RoutableMsg) -> anyhow::Result<Vec<Address>>;
 }
 
-pub struct MutContext<'a, S> {
-	store: &'a mut S,
-	height: BlockHeight,
-}
-
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
-pub struct Coin {
-	denom: String,
-	amount: u128,
-}
-
-impl<S> MutContext<'_, S> {
-	pub fn height(&self) -> BlockHeight {
-		self.height
-	}
-
-	pub fn store(&mut self) -> &mut S {
-		self.store
-	}
-}
-
-impl Coin {
-	pub fn new(denom: String, amount: u128) -> Self {
-		Self { denom, amount }
-	}
-
-	pub fn denom(&self) -> &str {
-		&self.denom
-	}
-
-	pub fn amount(&self) -> u128 {
-		self.amount
-	}
+pub trait SignerExtractor<S> {
+	fn extract_signers<'t, 's>(
+		&self,
+		ctx: &mut MutContext<'t, 's, S>,
+		msg: &RoutableMsg,
+	) -> anyhow::Result<Vec<Address>>;
 }

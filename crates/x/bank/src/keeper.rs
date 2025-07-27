@@ -4,18 +4,21 @@ pub use self::error::BankKeeperError;
 
 use core::num::NonZeroU128;
 
-use copper_base::{Address, Coin};
+use copper_base::{
+	Address,
+	coin::{Coin, Denom},
+};
 use copper_collections::Map;
 use copper_store::{GetKVStore, InsertKVStore, RemoveKVStore};
 use nebz::NonEmptyBz;
 
 use self::error::Result;
 
-pub struct BankKeeper {
-	balances: Map<'static, (Address, String), NonZeroU128>,
+pub struct BankKeeper<'a> {
+	balances: Map<'static, (&'a Address, &'a Denom), NonZeroU128>,
 }
 
-impl BankKeeper {
+impl<'a> BankKeeper<'a> {
 	pub fn new(prefix: NonEmptyBz<&'static [u8]>) -> Self {
 		Self { balances: Map::new(prefix) }
 	}
@@ -23,12 +26,13 @@ impl BankKeeper {
 	pub fn balance<S>(
 		&self,
 		store: &S,
-		address_denom: &(Address, String),
+		address: &Address,
+		denom: &Denom,
 	) -> Result<Option<NonZeroU128>>
 	where
 		S: GetKVStore,
 	{
-		self.balances.get(store, address_denom).map_err(From::from)
+		self.balances.get(store, &(address, denom)).map_err(From::from)
 	}
 
 	pub fn send_coin<S>(
@@ -36,25 +40,24 @@ impl BankKeeper {
 		store: &mut S,
 		from: &Address,
 		to: &Address,
-		coin: Coin,
+		coin: &Coin,
 	) -> Result<()>
 	where
 		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>> + RemoveKVStore,
-		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
+		NonEmptyBz<S::Key>: for<'k> From<NonEmptyBz<&'k [u8]>>,
 	{
-		let from_denom = &(*from, coin.denom().into());
-		let from_balance = self.balance(store, from_denom)?.map(NonZeroU128::get).unwrap_or(0);
+		let from_balance =
+			self.balance(store, from, coin.denom())?.map(NonZeroU128::get).unwrap_or(0);
 
-		let to_denom = &(*to, coin.denom().into());
-		let to_balance = self.balance(store, to_denom)?.map(NonZeroU128::get).unwrap_or(0);
+		let to_balance = self.balance(store, to, coin.denom())?.map(NonZeroU128::get).unwrap_or(0);
 
 		let new_from_balance =
 			from_balance.checked_sub(coin.amount()).ok_or(BankKeeperError::InsufficientBalance)?;
 		let new_to_balance =
 			to_balance.checked_add(coin.amount()).ok_or(BankKeeperError::BalanceOverflow)?;
 
-		self.set_balance(store, from_denom, new_from_balance)?;
-		self.set_balance(store, to_denom, new_to_balance)?;
+		self.set_balance(store, from, coin.denom(), new_from_balance)?;
+		self.set_balance(store, from, coin.denom(), new_to_balance)?;
 
 		Ok(())
 	}
@@ -62,22 +65,21 @@ impl BankKeeper {
 	pub(crate) fn set_balance<S>(
 		&self,
 		store: &mut S,
-		address_denom: &(Address, String),
+		address: &Address,
+		denom: &Denom,
 		amount: u128,
 	) -> Result<()>
 	where
 		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>> + RemoveKVStore,
-		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
+		NonEmptyBz<S::Key>: for<'k> From<NonEmptyBz<&'k [u8]>>,
 	{
-		let amount = match NonZeroU128::new(amount) {
-			Some(a) => a,
-			None => {
-				self.balances.remove(store, address_denom)?;
-				return Ok(());
-			},
+		let Some(amount) = NonZeroU128::new(amount) else {
+			self.balances.remove(store, &(address, denom))?;
+
+			return Ok(());
 		};
 
-		self.balances.insert(store, address_denom, &amount)?;
+		self.balances.insert(store, &(address, denom), &amount)?;
 
 		Ok(())
 	}

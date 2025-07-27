@@ -28,7 +28,7 @@ impl AccountKeeper {
 		self.accounts.get(store, address).map_err(From::from)
 	}
 
-	pub fn increment_sequence<S>(&self, store: &mut S, address: &Address) -> Result<u64>
+	pub fn increment_sequence<S>(&self, store: &mut S, address: &Address) -> Result<u128>
 	where
 		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>>,
 		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,

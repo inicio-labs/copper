@@ -14,3 +14,4 @@ borsh = { workspace = true, features = ["bytes"] }
 bytes = { workspace = true }
 ed25519-dalek = "2.2"
 sha2 = "0.10"
+thiserror = { workspace = true }

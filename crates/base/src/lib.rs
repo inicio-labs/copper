@@ -9,7 +9,9 @@ use self::{context::MutContext, msg::RoutableMsg};
 pub type Address = [u8; 20];
 
 pub trait GenesisInitializer<S, G> {
-	fn init_genesis(&self, store: &mut S, genesis: G) -> anyhow::Result<()>;
+	type Initialized;
+
+	fn init_genesis(self, store: &mut S, genesis: G) -> anyhow::Result<Self::Initialized>;
 }
 
 pub trait MsgHandler<S> {
@@ -27,3 +29,9 @@ pub trait SignerExtractor<S> {
 		msg: &RoutableMsg,
 	) -> anyhow::Result<Vec<Address>>;
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct Initialized;
+
+#[derive(Debug, Clone, Copy)]
+pub struct Uninitialized;

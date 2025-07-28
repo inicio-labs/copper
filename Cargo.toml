@@ -20,6 +20,8 @@ members = [
 [workspace.dependencies]
 copper-base = { path = "./crates/base" }
 copper-collections = { path = "./crates/collections" }
+copper-facet-account = { path = "./crates/x/account" }
+copper-facet-bank = { path = "./crates/x/bank" }
 copper-store = { path = "./crates/store" }
 
 anyhow = "1"
@@ -27,4 +29,6 @@ borsh = "1.5"
 bytes = "1"
 iavl = { git = "https://github.com/inicio-labs/iavl.git", tag = "v0.1.0-alpha.2" }
 nebz = "0.2.1"
+serde = "1"
+sha2 = "0.10"
 thiserror = "2"

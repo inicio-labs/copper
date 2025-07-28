@@ -28,6 +28,30 @@ impl AccountKeeper {
 		self.accounts.get(store, address).map_err(From::from)
 	}
 
+	pub fn init_accounts<S>(&self, store: &mut S, addresses: &[Address]) -> Result<()>
+	where
+		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>>,
+		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
+	{
+		for genesis_address in addresses {
+			self.init_account(store, genesis_address)?;
+		}
+
+		Ok(())
+	}
+
+	pub fn init_account<S>(&self, store: &mut S, address: &Address) -> Result<BaseAccount>
+	where
+		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>>,
+		NonEmptyBz<S::Key>: for<'a> From<NonEmptyBz<&'a [u8]>>,
+	{
+		let account = BaseAccount::new(None, 0);
+
+		self.accounts.insert(store, address, &account)?;
+
+		Ok(account)
+	}
+
 	pub fn increment_sequence<S>(&self, store: &mut S, address: &Address) -> Result<u128>
 	where
 		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>>,

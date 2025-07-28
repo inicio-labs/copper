@@ -1,15 +1,17 @@
+use core::num::NonZeroU64;
+
 use borsh::{BorshDeserialize, BorshSerialize};
 use sha2::{Digest, Sha256};
 
-use crate::tx::Tx;
+use crate::tx::{Signed, Tx};
 
-pub type BlockHeight = u64;
+pub type BlockHeight = NonZeroU64;
 pub type BlockHash = [u8; 32];
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
 pub struct Block {
 	header: BlockHeader,
-	txs: Vec<Tx>,
+	txs: Vec<Tx<Signed>>,
 }
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
@@ -21,7 +23,7 @@ pub struct BlockHeader {
 }
 
 impl Block {
-	pub fn new(header: BlockHeader, txs: Vec<Tx>) -> Self {
+	pub fn new(header: BlockHeader, txs: Vec<Tx<Signed>>) -> Self {
 		Self { header, txs }
 	}
 
@@ -29,17 +31,21 @@ impl Block {
 		&self.header
 	}
 
-	pub fn txs(&self) -> &[Tx] {
+	pub fn txs(&self) -> &[Tx<Signed>] {
 		&self.txs
 	}
 
-	pub fn dissolve(self) -> (BlockHeader, Vec<Tx>) {
+	pub fn dissolve(self) -> (BlockHeader, Vec<Tx<Signed>>) {
 		let Self { header, txs } = self;
 		(header, txs)
 	}
 }
 
 impl BlockHeader {
+	pub fn new(height: BlockHeight) -> Self {
+		Self { height, last_block_hash: None, app_hash: [0; 32], txs_hash: [0; 32] }
+	}
+
 	pub fn height(&self) -> BlockHeight {
 		self.height
 	}

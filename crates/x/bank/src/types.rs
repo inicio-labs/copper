@@ -1,5 +1,11 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use copper_base::{Address, coin::Coin};
+use copper_base::{
+	Address,
+	coin::Coin,
+	msg::{Msg, RoutableMsg},
+};
+
+use crate::BankFacet;
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
 pub struct CoinSend {
@@ -31,5 +37,15 @@ impl CoinSend {
 	pub fn dissolve(self) -> (Address, Address, Coin) {
 		let Self { from, to, coin } = self;
 		(from, to, coin)
+	}
+}
+
+impl Msg for CoinSend {
+	fn to_routable_msg(&self) -> RoutableMsg {
+		RoutableMsg::new(
+			BankFacet::NAME.into(),
+			Self::ID.into(),
+			borsh::to_vec(&self).unwrap().into(),
+		)
 	}
 }

@@ -87,7 +87,17 @@ impl<DB> CommitKVStore for IavlStore<DB>
 where
 	DB: MutKVStore + KVStore + Clone,
 {
+	type Hash = [u8; 32];
+
 	type Error = IavlStoreError;
+
+	fn hash(&self) -> Self::Hash {
+		self.tree.saved_hash()
+	}
+
+	fn version(&self) -> U63 {
+		self.tree.version()
+	}
 
 	fn commit(&mut self) -> Result<U63, Self::Error> {
 		self.tree.save().map_err(From::from)

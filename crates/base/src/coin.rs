@@ -8,12 +8,14 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use bytes::Bytes;
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Coin {
 	denom: Denom,
 	amount: u128,
 }
 
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Denom(Bytes);
 
 impl Coin {

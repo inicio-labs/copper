@@ -1,5 +1,7 @@
 mod error;
 
+use crate::genesis::Balance;
+
 pub use self::error::BankKeeperError;
 
 use core::num::NonZeroU128;
@@ -35,6 +37,22 @@ impl<'a> BankKeeper<'a> {
 		self.balances.get(store, &(address, denom)).map_err(From::from)
 	}
 
+	pub fn init_balances<S>(&self, store: &mut S, balances: &[Balance]) -> Result<()>
+	where
+		S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>> + RemoveKVStore,
+		NonEmptyBz<S::Key>: for<'k> From<NonEmptyBz<&'k [u8]>>,
+	{
+		for balance in balances {
+			for coin in balance.coins() {
+				if coin.amount() > 0 {
+					self.set_balance(store, balance.address(), coin.denom(), coin.amount())?;
+				}
+			}
+		}
+
+		Ok(())
+	}
+
 	pub fn send_coin<S>(
 		&self,
 		store: &mut S,
@@ -57,7 +75,7 @@ impl<'a> BankKeeper<'a> {
 			to_balance.checked_add(coin.amount()).ok_or(BankKeeperError::BalanceOverflow)?;
 
 		self.set_balance(store, from, coin.denom(), new_from_balance)?;
-		self.set_balance(store, from, coin.denom(), new_to_balance)?;
+		self.set_balance(store, to, coin.denom(), new_to_balance)?;
 
 		Ok(())
 	}

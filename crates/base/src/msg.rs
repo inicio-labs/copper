@@ -1,20 +1,24 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use bytes::Bytes;
 
+pub trait Msg {
+	fn to_routable_msg(&self) -> RoutableMsg;
+}
+
 #[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
 pub struct RoutableMsg {
-	module: String,
+	facet: String,
 	msg_id: String,
 	content: Bytes,
 }
 
 impl RoutableMsg {
-	pub fn new(module: String, msg_id: String, content: Bytes) -> Self {
-		Self { module, msg_id, content }
+	pub fn new(facet: String, msg_id: String, content: Bytes) -> Self {
+		Self { facet, msg_id, content }
 	}
 
-	pub fn module(&self) -> &str {
-		&self.module
+	pub fn facet(&self) -> &str {
+		&self.facet
 	}
 
 	pub fn msg_id(&self) -> &str {
@@ -26,7 +30,7 @@ impl RoutableMsg {
 	}
 
 	pub fn dissolve(self) -> (String, String, Bytes) {
-		let Self { module, msg_id, content } = self;
+		let Self { facet: module, msg_id, content } = self;
 		(module, msg_id, content)
 	}
 }

@@ -37,7 +37,13 @@ pub trait RemoveKVStore {
 }
 
 pub trait CommitKVStore {
+	type Hash;
+
 	type Error;
+
+	fn hash(&self) -> Self::Hash;
+
+	fn version(&self) -> U63;
 
 	fn commit(&mut self) -> Result<U63, Self::Error>;
 }

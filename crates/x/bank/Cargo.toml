@@ -12,8 +12,10 @@ workspace = true
 anyhow = { workspace = true }
 borsh = { workspace = true, features = ["bytes"] }
 bytes = { workspace = true }
-copper-base = { workspace = true }
+copper-base = { workspace = true, features = ["serde"] }
 copper-collections = { workspace = true }
 copper-store = { workspace = true }
 nebz = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_with = { version = "3", features = ["hex"] }
 thiserror = { workspace = true }

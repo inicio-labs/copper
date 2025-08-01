@@ -221,16 +221,17 @@ impl<'f> State<'f> {
 			certificate.value_id.clone(),
 		);
 
-		tracing::error!("COMMITTING at height {height} and round {round} the value {value_id}");
+		tracing::info!("COMMITTING at height {height} and round {round} the value {value_id}");
 
 		let Ok(Some(proposal)) = self.store.get_undecided_proposal_by_value_id(value_id).await
 		else {
 			eyre::bail!("no proposal at height {height} and round {round}");
 		};
 
-		self.app
+		let _ = self
+			.app
 			.process_block(proposal.value.get())
-			.map_err(|e| eyre::eyre!("failed to process block: {e}"))?;
+			.inspect_err(|e| tracing::error!("failed to process block: {e}"));
 
 		{
 			let address = const_hex::decode_to_array("d3d10a83a6e9bdadfff99e3960298e8630e36048")?;

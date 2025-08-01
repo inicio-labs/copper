@@ -8,8 +8,8 @@ function help {
     echo "Usage: spawn.sh [--help] --nodes NODES_COUNT --home NODES_HOME [--app APP_BINARY] [--no-reset]"
 }
 
-export MALACHITE__LOGGING__LOG_LEVEL=info
-export MALACHITE__CONSENSUS__TIMEOUT_COMMIT=5s
+export MALACHITE__LOGGING__LOG_LEVEL="info"
+export MALACHITE__CONSENSUS__TIMEOUT_PRECOMMIT="10s"
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do

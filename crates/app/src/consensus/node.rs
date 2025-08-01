@@ -53,7 +53,7 @@ use super::{
 	},
 };
 
-const SLEEP: Duration = Duration::from_secs(0);
+const SLEEP: Duration = Duration::from_secs(10);
 
 #[derive(Clone)]
 pub struct CopperNode {
@@ -464,29 +464,17 @@ async fn run<'f>(
 					"consensus has decided on value, committing...",
 				);
 
-				match state.commit(certificate).await {
-					Ok(_) => {
-						let _ = reply
-							.send(ConsensusMsg::StartHeight(
-								state.current_height,
-								state.get_validator_set(state.current_height).unwrap(),
-							))
-							.inspect_err(|_| tracing::error!("failed to send StartHeight reply"));
-					},
-					Err(_) => {
-						tracing::error!(
-							"commit failed, restarting height {}",
-							state.current_height
-						);
+				let _ = state
+					.commit(certificate)
+					.await
+					.inspect_err(|e| tracing::error!("commit failed: {e}"));
 
-						let _ = reply
-							.send(ConsensusMsg::RestartHeight(
-								state.current_height,
-								state.get_validator_set(state.current_height).unwrap(),
-							))
-							.inspect_err(|_| tracing::error!("failed to send RestartHeight reply"));
-					},
-				}
+				let _ = reply
+					.send(ConsensusMsg::StartHeight(
+						state.current_height,
+						state.get_validator_set(state.current_height).unwrap(),
+					))
+					.inspect_err(|_| tracing::error!("failed to send StartHeight reply"));
 
 				tokio::time::sleep(SLEEP).await;
 			},

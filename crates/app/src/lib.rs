@@ -1,3 +1,4 @@
+pub mod consensus;
 pub mod genesis;
 
 use std::collections::{BTreeMap, BTreeSet, btree_map::Entry};
@@ -25,7 +26,7 @@ pub fn derive_address(vk: &VerifyingKey) -> Address {
 pub struct App<'f, S, R> {
 	store: S,
 	chain_id: Bytes,
-	facets: BTreeMap<&'static str, &'f dyn Facet<S>>,
+	facets: BTreeMap<&'static str, &'f (dyn Facet<S> + Sync)>,
 	register: R,
 }
 
@@ -44,7 +45,7 @@ impl<'f, S> App<'f, S, Registering> {
 
 	pub fn register_facet<F>(&mut self, name: &'static str, facet: &'f F) -> anyhow::Result<()>
 	where
-		F: SignerExtractor<S> + MsgHandler<S> + 'static,
+		F: SignerExtractor<S> + MsgHandler<S> + Sync + 'static,
 	{
 		let Entry::Vacant(entry) = self.facets.entry(name) else {
 			anyhow::bail!("facet with name {name} already registered");
@@ -72,7 +73,7 @@ where
 	S: GetKVStore + InsertKVStore<Value: From<Vec<u8>>> + RemoveKVStore,
 	NonEmptyBz<S::Key>: for<'k> From<NonEmptyBz<&'k [u8]>>,
 {
-	pub fn process_block(&mut self, block: Block) -> anyhow::Result<()> {
+	pub fn process_block(&mut self, block: &Block) -> anyhow::Result<()> {
 		for tx in block.txs() {
 			self.process_tx(block.header().height(), tx)?;
 		}
@@ -173,6 +174,10 @@ where
 }
 
 impl<S> App<'_, S, Registered<'_>> {
+	pub fn account_facet(&self) -> &AccountFacet<Initialized> {
+		self.register.account_facet
+	}
+
 	pub fn commit(&mut self) -> anyhow::Result<BlockHash>
 	where
 		S: CommitKVStore<Hash = [u8; 32]>,

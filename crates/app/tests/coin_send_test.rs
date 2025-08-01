@@ -35,6 +35,11 @@ fn coin_send_works() -> anyhow::Result<()> {
 
 	let alice_address = app::derive_address(&alice_vk);
 
+	println!(
+		"alice address = {}",
+		const_hex::const_encode::<20, false>(&alice_address).as_str(),
+	);
+
 	let genesis = {
 		let account_genesis = AccountGenesis::new(vec![]);
 
@@ -81,6 +86,11 @@ fn coin_send_works() -> anyhow::Result<()> {
 
 	let bob_address = app::derive_address(&bob_vk);
 
+	println!(
+		"bob address = {}",
+		const_hex::const_encode::<20, false>(&bob_address).as_str(),
+	);
+
 	let msg_one = {
 		let coin = Coin::new("mudra".parse()?, 4_000);
 		let send_coin_msg = CoinSend::new(app::derive_address(&alice_vk), bob_address, coin);
@@ -116,7 +126,7 @@ fn coin_send_works() -> anyhow::Result<()> {
 
 	let block = Block::new(header, vec![signed_tx]);
 
-	app.process_block(block)?;
+	app.process_block(&block)?;
 
 	app.commit()?;
 

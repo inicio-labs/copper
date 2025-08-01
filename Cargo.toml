@@ -24,6 +24,13 @@ copper-facet-account = { path = "./crates/x/account" }
 copper-facet-bank = { path = "./crates/x/bank" }
 copper-store = { path = "./crates/store" }
 
+malachitebft-app-channel = { package = "informalsystems-malachitebft-app-channel", version = "0.4.0" }
+malachitebft-core-types = { package = "informalsystems-malachitebft-core-types", version = "0.4.0" }
+malachitebft-proto = { package = "informalsystems-malachitebft-proto", version = "0.4.0" }
+malachitebft-sync = { package = "informalsystems-malachitebft-sync", version = "0.4.0" }
+malachitebft-test = { package = "informalsystems-malachitebft-test", version = "0.4.0", git = "https://github.com/informalsystems/malachite", tag = "v0.4.0" }
+malachitebft-test-cli = { package = "informalsystems-malachitebft-test-cli", version = "0.4.0", git = "https://github.com/informalsystems/malachite", tag = "v0.4.0" }
+
 anyhow = "1"
 borsh = "1.5"
 bytes = "1"
@@ -32,3 +39,9 @@ nebz = "0.2.1"
 serde = "1"
 sha2 = "0.10"
 thiserror = "2"
+
+[patch.crates-io]
+malachitebft-app-channel = { package = "informalsystems-malachitebft-app-channel", version = "0.4.0", git = "https://github.com/informalsystems/malachite", tag = "v0.4.0" }
+malachitebft-core-types = { package = "informalsystems-malachitebft-core-types", version = "0.4.0", git = "https://github.com/informalsystems/malachite", tag = "v0.4.0" }
+malachitebft-sync = { package = "informalsystems-malachitebft-sync", version = "0.4.0", git = "https://github.com/informalsystems/malachite", tag = "v0.4.0" }
+malachitebft-proto = { package = "informalsystems-malachitebft-proto", version = "0.4.0", git = "https://github.com/informalsystems/malachite", tag = "v0.4.0" }

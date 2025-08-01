@@ -5,7 +5,7 @@ pub trait Msg {
 	fn to_routable_msg(&self) -> RoutableMsg;
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, BorshSerialize, BorshDeserialize)]
 pub struct RoutableMsg {
 	facet: String,
 	msg_id: String,

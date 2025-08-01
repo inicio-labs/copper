@@ -4,14 +4,14 @@ use sha2::{Digest, Sha256};
 
 use crate::msg::RoutableMsg;
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, BorshSerialize, BorshDeserialize)]
 pub struct Tx<S> {
 	msgs: Vec<RoutableMsg>,
 	signer_infos: Vec<SignerInfo>,
 	sigs: S,
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, BorshSerialize, BorshDeserialize)]
 pub struct SignerInfo {
 	pub_key: Bytes,
 	sequence: u128,
@@ -20,7 +20,7 @@ pub struct SignerInfo {
 #[derive(Debug, Clone)]
 pub struct Unsigned;
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, BorshSerialize, BorshDeserialize)]
 pub struct Signed(Vec<Bytes>);
 
 #[derive(Debug, Clone, BorshSerialize)]

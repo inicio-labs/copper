@@ -10,16 +10,33 @@ workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+async-trait = "0.1"
 borsh = "1.5"
 bytes = "1"
+color-eyre = "0.6"
+config = "0.15"
+const-hex = "1"
 copper-base = { workspace = true }
 copper-facet-account = { workspace = true }
 copper-facet-bank = { workspace = true }
 copper-store = { workspace = true, features = ["iavl", "redb"] }
-const-hex = "1"
 ed25519-dalek = "2.2"
+eyre = "0.6"
+iavl = { workspace = true, features = ["redb"] }
+malachitebft-app-channel = { workspace = true }
+malachitebft-core-types = { workspace = true, features = ["borsh"] }
+malachitebft-proto = { workspace = true }
+malachitebft-sync = { workspace = true }
+malachitebft-test = { workspace = true }
+malachitebft-test-cli = { workspace = true }
 nebz = { workspace = true }
+prost = "0.13"
+rand = "0.8"
 redb = "2.6"
 ron = "0.8"
 serde = { workspace = true, features = ["derive"] }
+serde_json = "1"
 sha2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+tracing = "0.1"

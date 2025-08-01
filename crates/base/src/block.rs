@@ -8,13 +8,13 @@ use crate::tx::{Signed, Tx};
 pub type BlockHeight = NonZeroU64;
 pub type BlockHash = [u8; 32];
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, BorshSerialize, BorshDeserialize)]
 pub struct Block {
 	header: BlockHeader,
 	txs: Vec<Tx<Signed>>,
 }
 
-#[derive(Debug, Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, BorshSerialize, BorshDeserialize)]
 pub struct BlockHeader {
 	height: BlockHeight,
 	last_block_hash: Option<BlockHash>,
@@ -33,6 +33,12 @@ impl Block {
 
 	pub fn txs(&self) -> &[Tx<Signed>] {
 		&self.txs
+	}
+
+	pub fn hash(&self) -> BlockHash {
+		let mut hasher = Sha256::new();
+		self.serialize(&mut hasher).unwrap();
+		hasher.finalize().into()
 	}
 
 	pub fn dissolve(self) -> (BlockHeader, Vec<Tx<Signed>>) {

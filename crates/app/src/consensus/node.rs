@@ -53,7 +53,7 @@ use super::{
 	},
 };
 
-const SLEEP: Duration = Duration::from_secs(10);
+const SLEEP: Duration = Duration::from_secs(5);
 
 #[derive(Clone)]
 pub struct CopperNode {

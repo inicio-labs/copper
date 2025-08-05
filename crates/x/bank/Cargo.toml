@@ -19,3 +19,4 @@ nebz = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_with = { version = "3", features = ["hex"] }
 thiserror = { workspace = true }
+tracing = "0.1"

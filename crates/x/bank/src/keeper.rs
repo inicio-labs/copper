@@ -77,6 +77,16 @@ impl<'a> BankKeeper<'a> {
 		self.set_balance(store, from, coin.denom(), new_from_balance)?;
 		self.set_balance(store, to, coin.denom(), new_to_balance)?;
 
+		println!(
+			"FROM BALANCE AFTER COIN SEND: {:?}",
+			self.balance(store, from, coin.denom())
+		);
+
+		println!(
+			"TO BALANCE AFTER COIN SEND: {:?}",
+			self.balance(store, to, coin.denom())
+		);
+
 		Ok(())
 	}
 

@@ -60,7 +60,7 @@ impl CopperValidatorSet {
 		self.validators.is_empty()
 	}
 
-	pub fn iter(&self) -> slice::Iter<CopperValidator> {
+	pub fn iter(&self) -> slice::Iter<'_, CopperValidator> {
 		self.validators.iter()
 	}
 
